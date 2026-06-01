@@ -62,6 +62,42 @@ Para visualizar os trades que estão sendo salvos pelo Radar, você pode usar o 
    - **Password:** *(deixe em branco)*
 3. Clique em **Connect** e rode `SELECT * FROM trade_records;` para ver o histórico populando.
 
+## 💼 A API de Operações (Paper Trading)
+
+O NexoTrade OS disponibiliza endpoints REST para você executar simulações de compra e venda usando o preço do Bitcoin em tempo real!
+
+A aplicação já inicializa uma **Carteira Virtual** com `$ 10.000,00` (Dez mil dólares) prontos para operar.
+
+### 1. Checar o Saldo da Carteira (GET)
+Retorna o saldo de USD e BTC disponíveis.
+
+**cURL:**
+```bash
+curl -X GET http://localhost:8080/api/wallet
+```
+
+### 2. Comprar Bitcoin (POST)
+Deduz o valor em Dólar (`amountUsd`) da carteira e adiciona a fração de Bitcoin baseada no preço exato do radar no instante da execução.
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8080/api/trade/execute \
+     -H "Content-Type: application/json" \
+     -d "{\"action\": \"BUY\", \"amountUsd\": 1500.00}"
+```
+
+### 3. Vender Bitcoin (POST)
+Vende a fração de Bitcoin (`amountBtc`), adicionando o Dólar correspondente à carteira.
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8080/api/trade/execute \
+     -H "Content-Type: application/json" \
+     -d "{\"action\": \"SELL\", \"amountBtc\": 0.05}"
+```
+
+*Obs: Você pode utilizar ferramentas visuais como **Postman** ou **Insomnia** para disparar as requisições acima configurando o JSON no body (`raw` > `JSON`).*
+
 ## 🧪 Como Rodar os Testes
 
 Os testes garantem que o radar não sofra Memory Leaks ou Exception Leaks caso a Binance envie um JSON sujo, incompleto ou quebrado.

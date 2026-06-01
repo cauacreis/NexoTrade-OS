@@ -25,6 +25,7 @@ public class BinanceStreamService implements WebSocketHandler {
     private final ObjectMapper objectMapper;
     private final TradePersistenceService tradePersistenceService;
     private static final String BINANCE_STREAM_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
+    private volatile java.math.BigDecimal lastPrice = java.math.BigDecimal.ZERO;
 
     public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper, TradePersistenceService tradePersistenceService) {
         this.webSocketClient = webSocketClient;
@@ -57,8 +58,11 @@ public class BinanceStreamService implements WebSocketHandler {
                     String price = rootNode.get("p").asText();
                     double priceValue = Double.parseDouble(price);
                     
+                    java.math.BigDecimal currentPrice = new java.math.BigDecimal(price);
+                    this.lastPrice = currentPrice;
+                    
                     // Salvar no banco usando thread separada (Virtual Threads se habilitado)
-                    tradePersistenceService.saveTradeAsync("BTCUSDT", new java.math.BigDecimal(price));
+                    tradePersistenceService.saveTradeAsync("BTCUSDT", currentPrice);
                     
                     System.out.printf("\033[1;36m[NEXOTRADE RADAR]\033[0m \033[1;32mBTC/USDT Trade Executado -> $\033[0m \033[1;33m%,.2f\033[0m%n", priceValue);
                 }
@@ -66,6 +70,10 @@ public class BinanceStreamService implements WebSocketHandler {
         } catch (Exception e) {
             log.error("Erro ao decodificar a mensagem JSON do Trade: {}", e.getMessage());
         }
+    }
+
+    public java.math.BigDecimal getLastPrice() {
+        return this.lastPrice;
     }
 
     @Override
