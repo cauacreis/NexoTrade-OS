@@ -23,11 +23,13 @@ public class BinanceStreamService implements WebSocketHandler {
 
     private final WebSocketClient webSocketClient;
     private final ObjectMapper objectMapper;
+    private final TradePersistenceService tradePersistenceService;
     private static final String BINANCE_STREAM_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
 
-    public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper) {
+    public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper, TradePersistenceService tradePersistenceService) {
         this.webSocketClient = webSocketClient;
         this.objectMapper = objectMapper;
+        this.tradePersistenceService = tradePersistenceService;
     }
 
     @PostConstruct
@@ -51,9 +53,13 @@ public class BinanceStreamService implements WebSocketHandler {
             if (message instanceof TextMessage textMessage) {
                 String payload = textMessage.getPayload();
                 JsonNode rootNode = objectMapper.readTree(payload);
-                if (rootNode.has("p")) {
+                if (rootNode != null && rootNode.has("p")) {
                     String price = rootNode.get("p").asText();
                     double priceValue = Double.parseDouble(price);
+                    
+                    // Salvar no banco usando thread separada (Virtual Threads se habilitado)
+                    tradePersistenceService.saveTradeAsync("BTCUSDT", new java.math.BigDecimal(price));
+                    
                     System.out.printf("\033[1;36m[NEXOTRADE RADAR]\033[0m \033[1;32mBTC/USDT Trade Executado -> $\033[0m \033[1;33m%,.2f\033[0m%n", priceValue);
                 }
             }
@@ -69,7 +75,13 @@ public class BinanceStreamService implements WebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        log.warn("[NEXOTRADE RADAR] Conexão com a Binance encerrada. Status: {}", closeStatus);
+        log.warn("[NEXOTRADE RADAR] Conexão com a Binance encerrada. Status: {}. Tentando reconectar em 5 segundos...", closeStatus);
+        scheduleReconnect();
+    }
+
+    private void scheduleReconnect() {
+        java.util.concurrent.CompletableFuture.delayedExecutor(5, java.util.concurrent.TimeUnit.SECONDS)
+            .execute(this::init);
     }
 
     @Override
