@@ -1,54 +1,19 @@
 # NexoTrade OS
 
-NexoTrade OS é um simulador de paper trading (arbitragem) de criptomoedas focado em alta performance. Ele se conecta à stream pública da Binance (em tempo real via WebSocket) e armazena o histórico dos trades de Bitcoin.
+Esse é um projeto de arquitetura de alta performance utilizando **Java 21**, **Spring Boot 3**, e **Virtual Threads**, acoplado a um front-end brutalista em **React + Vite**. O objetivo é simular transações financeiras na velocidade da luz consumindo o stream de cotações em tempo real da Binance via WebSocket.
 
-## 🚀 Tecnologias
+## 🚀 Arquitetura do Sistema
 
-A stack tecnológica do NexoTrade OS foi escolhida para máxima performance, simultaneidade e simplicidade:
+1. **O Radar (WebSocket):** Um canal de escuta contínua na porta WSS da Binance, decodificando dezenas de mensagens JSON por segundo.
+2. **O Cofre de Persistência:** Sistema de gravação das cotações em tempo real no banco de dados, offloading o peso para threads virtuais isoladas.
+3. **O Motor Financeiro (Paper Trading):** Transações em banco de dados H2 (in-memory) rodando de forma assíncrona para não engargalar o Radar.
+4. **O Bot de Arbitragem (Média Móvel):** Robô autônomo acoplado à engine, tomando decisões de compra/venda baseadas na volatilidade instantânea da Média Móvel de 50 períodos (SMA).
+5. **A API REST e Web Terminal:** O motor financeiro está totalmente exposto via JSON, controlado por um Dashboard React com estética Neo-Brutalista.
 
-- **Java 21**: Aproveitando as mais novas features da linguagem, incluindo as **Virtual Threads**, para garantir que as gravações de banco de dados e os processos paralelos rodem sem travar a thread de leitura do WebSocket.
-- **Spring Boot 3**: Fornece toda a fundação web, configuração automática e a facilidade do ecossistema Spring.
-- **WebSocket (Spring)**: O radar embutido do sistema que mantém a conexão sempre viva (com auto-reconnect) ouvindo o stream da Binance.
-- **Spring Data JPA & Hibernate**: Camada de persistência das transações.
-- **H2 Database**: Banco de dados relacional em memória de alta velocidade utilizado como o "Cofre de Persistência".
-- **Lombok** & **Jackson**: Para redução de boilerplate e parse de JSON ultra-rápido.
-
-## ⚙️ Funcionalidades
-
-- **O Olho do Radar (WebSocket):** Conecta-se no endpoint `wss://stream.binance.com:9443/ws/btcusdt@trade`, faz o parse do JSON dos trades de BTC/USDT em tempo real e imprime no terminal de maneira super estilizada (ANSI colors).
-- **O Cofre de Simulação (Persistência Async):** Utiliza Virtual Threads (ou thread pool paralelo) para gravar os registros na entidade `TradeRecord` assincronamente (através do `@EnableAsync`), sem bloquear o "Radar".
-- **Resiliência:** A aplicação detecta a queda de conexão do WebSocket e tenta reconectar em 5 segundos, além de ser tolerante a falhas na leitura dos pacotes JSON (sem NullPointerExceptions).
-
-## 🛠️ Como Rodar a Aplicação
-
-Siga as instruções abaixo para rodar o radar de simulação na sua própria máquina.
-
-### Pré-requisitos
-- JDK 21+ instalado na máquina.
-- Git (opcional, se quiser clonar o repositório).
-
-### Passos:
-
-1. Clone o projeto e entre no diretório:
-   ```bash
-   git clone https://github.com/cauacreis/NexoTrade-OS.git
-   cd "NexoTrade-OS"
-   ```
-
-2. Para rodar diretamente usando o Maven Wrapper (incluído no projeto):
-   No Linux/Mac:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-   No Windows (PowerShell/CMD):
-   ```cmd
-   .\mvnw.cmd spring-boot:run
-   ```
-
-3. Você verá os logs do radar pipocando no seu terminal em tempo real!
-   ```
-   [NEXOTRADE RADAR] BTC/USDT Trade Executado -> $ 65,432.10
-   ```
+## 🛠️ Tecnologias Utilizadas
+- **Backend:** Java 21, Spring Boot 3, Maven, Spring WebSockets, Spring Data JPA, H2 Database.
+- **Frontend:** React, TypeScript, Vite, TailwindCSS (Neo-Brutalism).
+- **Design Patterns:** Event-driven architecture, Injeção de Dependências, Asynchronous Processing, Strategy.
 
 ## 🗄️ Acessando o Banco de Dados (H2)
 
@@ -115,19 +80,32 @@ Ativa ou desativa o Auto-Trading em tempo real. O Bot inicia desligado por padr�
 curl -X POST http://localhost:8080/api/bot/toggle
 ```
 
-*Obs: Você pode utilizar ferramentas visuais como **Postman** ou **Insomnia** para disparar as requisições acima.*
+## 🖥️ O Terminal Web (Frontend React)
+
+O NexoTrade OS agora possui um painel de controle Neo-Brutalista!
+Através dele você acompanha o saldo em tempo real, controla o Bot Autônomo e pode disparar ordens de override manuais (Comprar/Vender).
+
+### Como Rodar o Dashboard:
+1. Abra um terminal separado e acesse a pasta do frontend:
+```bash
+cd nexo-trade-web
+```
+2. Instale as dependências (se for a primeira vez):
+```bash
+npm install
+```
+3. Inicie o servidor Vite:
+```bash
+npm run dev
+```
+4. Acesse **http://localhost:5173** no seu navegador!
+
+*(Certifique-se de que o backend Java esteja rodando na porta `8080` ao mesmo tempo).*
 
 ## 🧪 Como Rodar os Testes
 
 Os testes garantem que o radar não sofra Memory Leaks ou Exception Leaks caso a Binance envie um JSON sujo, incompleto ou quebrado.
 
-Para executar a suíte de testes unitários (JUnit 5 + Mockito):
-
-No Linux/Mac:
 ```bash
 ./mvnw clean test
-```
-No Windows:
-```cmd
-.\mvnw.cmd clean test
 ```
