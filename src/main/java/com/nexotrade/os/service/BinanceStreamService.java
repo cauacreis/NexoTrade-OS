@@ -16,6 +16,8 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.nexotrade.os.strategy.SimpleMovingAverageBot;
+
 @Service
 public class BinanceStreamService implements WebSocketHandler {
 
@@ -24,13 +26,15 @@ public class BinanceStreamService implements WebSocketHandler {
     private final WebSocketClient webSocketClient;
     private final ObjectMapper objectMapper;
     private final TradePersistenceService tradePersistenceService;
+    private final SimpleMovingAverageBot bot;
     private static final String BINANCE_STREAM_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
     private volatile java.math.BigDecimal lastPrice = java.math.BigDecimal.ZERO;
 
-    public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper, TradePersistenceService tradePersistenceService) {
+    public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper, TradePersistenceService tradePersistenceService, SimpleMovingAverageBot bot) {
         this.webSocketClient = webSocketClient;
         this.objectMapper = objectMapper;
         this.tradePersistenceService = tradePersistenceService;
+        this.bot = bot;
     }
 
     @PostConstruct
@@ -63,6 +67,11 @@ public class BinanceStreamService implements WebSocketHandler {
                     
                     // Salvar no banco usando thread separada (Virtual Threads se habilitado)
                     tradePersistenceService.saveTradeAsync("BTCUSDT", currentPrice);
+                    
+                    // Notificar o robô da média móvel
+                    if (bot != null) {
+                        bot.processNewPrice(currentPrice);
+                    }
                     
                     System.out.printf("\033[1;36m[NEXOTRADE RADAR]\033[0m \033[1;32mBTC/USDT Trade Executado -> $\033[0m \033[1;33m%,.2f\033[0m%n", priceValue);
                 }

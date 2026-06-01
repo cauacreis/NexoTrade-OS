@@ -5,8 +5,11 @@ import com.nexotrade.os.model.OrderType;
 import com.nexotrade.os.model.Wallet;
 import com.nexotrade.os.repository.WalletRepository;
 import com.nexotrade.os.service.TradingEngineService;
+import com.nexotrade.os.strategy.SimpleMovingAverageBot;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -14,10 +17,12 @@ public class TradingController {
 
     private final TradingEngineService tradingEngineService;
     private final WalletRepository walletRepository;
+    private final SimpleMovingAverageBot bot;
 
-    public TradingController(TradingEngineService tradingEngineService, WalletRepository walletRepository) {
+    public TradingController(TradingEngineService tradingEngineService, WalletRepository walletRepository, SimpleMovingAverageBot bot) {
         this.tradingEngineService = tradingEngineService;
         this.walletRepository = walletRepository;
+        this.bot = bot;
     }
 
     @GetMapping("/wallet")
@@ -48,5 +53,14 @@ public class TradingController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Erro interno: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/bot/toggle")
+    public ResponseEntity<?> toggleBot() {
+        bot.toggleBot();
+        return ResponseEntity.ok(Map.of(
+                "message", "Bot alterado com sucesso",
+                "active", bot.isActive()
+        ));
     }
 }

@@ -59,8 +59,8 @@ class BinanceStreamServiceTest {
     @BeforeEach
     void setUp() {
         tradePersistenceService = new DummyTradePersistenceService();
-        // Não passamos webSocketClient, pois não testaremos a conexão real
-        binanceStreamService = new BinanceStreamService(null, objectMapper, tradePersistenceService);
+        // Não passamos webSocketClient nem SMA bot reais, pois não testaremos a lógica de bot aqui
+        binanceStreamService = new BinanceStreamService(null, objectMapper, tradePersistenceService, null);
     }
 
     @Test

@@ -62,7 +62,18 @@ Para visualizar os trades que estão sendo salvos pelo Radar, você pode usar o 
    - **Password:** *(deixe em branco)*
 3. Clique em **Connect** e rode `SELECT * FROM trade_records;` para ver o histórico populando.
 
-## 💼 A API de Operações (Paper Trading)
+## 🤖 O Motor de Análise (Bot de Arbitragem)
+
+O NexoTrade OS agora conta com um Bot de Auto-Trading acoplado diretamente à stream de preços!
+Ele utiliza a estratégia de **Média Móvel Simples (SMA - Simple Moving Average)** dos últimos 50 trades do Bitcoin para identificar oportunidades matemáticas no mercado.
+
+**Regras de Execução Autônoma:**
+- Se o preço do BTC **cair 2%** abaixo da Média Móvel (Sinal de Queda/Oportunidade), o Bot dispara uma **COMPRA** automática usando 10% do seu saldo de Dólar disponível.
+- Se o preço do BTC **subir 2%** acima da Média Móvel (Sinal de Alta/Lucro), o Bot dispara uma **VENDA** automática liquidando todo o seu saldo de BTC para realizar lucro imediato.
+
+*(Para ativar o robô, utilize a API REST de Controle descrita abaixo).*
+
+## 💼 A API de Operações (REST)
 
 O NexoTrade OS disponibiliza endpoints REST para você executar simulações de compra e venda usando o preço do Bitcoin em tempo real!
 
@@ -96,7 +107,15 @@ curl -X POST http://localhost:8080/api/trade/execute \
      -d "{\"action\": \"SELL\", \"amountBtc\": 0.05}"
 ```
 
-*Obs: Você pode utilizar ferramentas visuais como **Postman** ou **Insomnia** para disparar as requisições acima configurando o JSON no body (`raw` > `JSON`).*
+### 4. Ligar/Desligar o Bot de Média Móvel (POST)
+Ativa ou desativa o Auto-Trading em tempo real. O Bot inicia desligado por padrão de segurança.
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8080/api/bot/toggle
+```
+
+*Obs: Você pode utilizar ferramentas visuais como **Postman** ou **Insomnia** para disparar as requisições acima.*
 
 ## 🧪 Como Rodar os Testes
 
