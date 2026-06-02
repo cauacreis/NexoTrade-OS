@@ -29,6 +29,7 @@ public class BinanceStreamService implements WebSocketHandler {
     private final SimpleMovingAverageBot bot;
     private static final String BINANCE_STREAM_URL = "wss://stream.binance.com:9443/ws/btcusdt@trade";
     private volatile java.math.BigDecimal lastPrice = java.math.BigDecimal.ZERO;
+    private final java.util.concurrent.ScheduledExecutorService mockExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
 
     public BinanceStreamService(WebSocketClient webSocketClient, ObjectMapper objectMapper, TradePersistenceService tradePersistenceService, SimpleMovingAverageBot bot) {
         this.webSocketClient = webSocketClient;
@@ -41,10 +42,35 @@ public class BinanceStreamService implements WebSocketHandler {
     public void init() {
         try {
             log.info("Iniciando conexão com o Radar NexoTrade na Binance...");
-            webSocketClient.execute(this, BINANCE_STREAM_URL);
+            webSocketClient.execute(this, BINANCE_STREAM_URL).whenComplete((res, ex) -> {
+                if (ex != null) {
+                    log.error("Erro fatal ao conectar no WebSocket: {}", ex.getMessage(), ex);
+                }
+            });
         } catch (Exception e) {
             log.error("Erro ao conectar no WebSocket da Binance: {}", e.getMessage(), e);
         }
+        
+        // Fallback de simulação caso a Binance demore a conectar ou dê rate limit
+        mockExecutor.scheduleAtFixedRate(() -> {
+            if (this.lastPrice.compareTo(java.math.BigDecimal.ZERO) == 0) {
+                log.warn("[NEXOTRADE RADAR] Binance indisponível/Rate Limit. Iniciando gerador de preço simulado...");
+                simulatePrice();
+            } else if (this.lastPrice.compareTo(java.math.BigDecimal.valueOf(1000)) < 0) {
+                // Preço mockado ativo
+                simulatePrice();
+            }
+        }, 5, 2, java.util.concurrent.TimeUnit.SECONDS);
+    }
+    
+    private void simulatePrice() {
+        double randomVariation = (Math.random() - 0.5) * 50; // Variação de -$25 a +$25
+        double basePrice = this.lastPrice.compareTo(java.math.BigDecimal.ZERO) == 0 ? 67500.00 : this.lastPrice.doubleValue();
+        java.math.BigDecimal mockPrice = java.math.BigDecimal.valueOf(basePrice + randomVariation);
+        this.lastPrice = mockPrice;
+        tradePersistenceService.saveTradeAsync("BTCUSDT_MOCK", mockPrice);
+        if (bot != null) bot.processNewPrice(mockPrice);
+        System.out.printf("\033[1;36m[NEXOTRADE RADAR - MOCK]\033[0m \033[1;32mBTC/USDT Simulado -> $\033[0m \033[1;33m%,.2f\033[0m%n", mockPrice.doubleValue());
     }
 
     @Override

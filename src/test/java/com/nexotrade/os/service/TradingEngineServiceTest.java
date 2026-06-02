@@ -48,7 +48,7 @@ class TradingEngineServiceTest {
     static class DummyBinanceStreamService extends BinanceStreamService {
         public BigDecimal mockedPrice = BigDecimal.ZERO;
         public DummyBinanceStreamService() {
-            super(null, null, null);
+            super(null, null, null, null);
         }
         @Override
         public BigDecimal getLastPrice() {
